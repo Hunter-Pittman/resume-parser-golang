@@ -39,7 +39,7 @@ func main() {
 
 	analyzedResumes := searchPdf(pdfPath, keywords)
 
-	fmt.Printf("%v", analyzedResumes)
+	generateCSV1(analyzedResumes, keywords)
 
 }
 
@@ -107,6 +107,32 @@ func searchPdf(pdfPath string, keywords []string) []Resume {
 	return output
 }
 
-func generateCSV(resumeData []Resume) {
+func generateCSV(resumeData []Resume, keywords []string) {
+	initialRow := [][]string{{"Filename", "test", "test"}, {"test", "test", "test"}}
 
+	for _, keyword := range keywords {
+		initialRow[0] = append(initialRow[0], keyword)
+	}
+
+	initialRow[0] = append(initialRow[0], "Hi my name is Hunter")
+
+	fmt.Printf("%v\n", initialRow[0])
+
+}
+
+//empData := [][]string{{"Name", "City", "Skills"}, {"Smith", "Newyork", "Java"}, {"William", "Paris", "Golang"}, {"Rose", "London", "PHP"}}
+
+func generateCSV1(resumeData []Resume, keywords []string) {
+	initialRow := []string{"Filename", "test", "test"}
+
+	// Add each keyword to the initial row
+	for _, keyword := range keywords {
+		initialRow = append(initialRow, keyword)
+	}
+
+	// Append the string to the initial row
+	initialRow = append(initialRow, "My new stuff")
+
+	// Return the initial row as a two-dimensional array
+	fmt.Printf("%v\n", initialRow)
 }
