@@ -5,22 +5,20 @@ package main
 
 import (
 	"bytes"
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 
 	"github.com/ledongthuc/pdf"
 )
 
-type KeywordInfo struct {
-	keywords, count interface{}
-}
-
 type Resume struct {
-	filename    string
-	keywordInfo KeywordInfo
+	filename string
+	count    []int
 }
 
 func main() {
@@ -33,13 +31,12 @@ func main() {
 	flag.Parse()
 
 	//Test value only
-	pdfPath = "C:\\Users\\hunte\\Documents\\pdf_test_dir\\"
-
-	keywords := []string{"sponsor", "cyber", "security"}
+	pdfPath = "C:\\Users\\hunte\\Documents\\pdf_test_dir2\\"
+	keywords := wordlistSeperate("C:\\Users\\hunte\\Documents\\TIER 1 CaCTI Keywords.txt")
 
 	analyzedResumes := searchPdf(pdfPath, keywords)
 
-	generateCSV1(analyzedResumes, keywords)
+	generateCSV(analyzedResumes, keywords)
 
 }
 
@@ -73,66 +70,103 @@ func searchPdf(pdfPath string, keywords []string) []Resume {
 		}
 
 		for _, f := range files {
-			content, err := readPdf(pdfPath + f.Name()) // Read local pdf file
+			pdfName := pdfPath + f.Name()
+			content, err := readPdf(pdfName) // Read local pdf file
 			fullPdfPath := pdfPath + f.Name()
 			if err != nil {
 				fmt.Printf("Error: %v, File Path: %v\n", err, fullPdfPath)
-			}
+			} else {
+				finalCounts := make([]int, 0)
+				for _, keyword := range keywords {
+					count := strings.Count(content, keyword)
 
-			for _, keyword := range keywords {
-				count := strings.Count(content, keyword)
-				//fmt.Printf("Found %s %d times in %s\n", keyword, count, pdfPath)
+					finalCounts = append(finalCounts, count)
 
-				completedKeywordInfo := KeywordInfo{keyword, count}
-				completedResume := Resume{fullPdfPath, completedKeywordInfo}
+				}
+				var sum int = 0
+				for _, num := range finalCounts {
+					sum += num
+				}
+
+				finalCounts = append(finalCounts, sum)
+
+				completedResume := Resume{pdfName, finalCounts}
 				output = append(output, completedResume)
 			}
 		}
 	} else {
 		content, err := readPdf(pdfPath) // Read local pdf file
 		if err != nil {
-			fmt.Printf("%v\n", err)
+			fmt.Printf("Error: %v, File Path: %v\n", err, pdfPath)
 		}
 
+		finalCounts := make([]int, 0)
 		for _, keyword := range keywords {
 			count := strings.Count(content, keyword)
-			//fmt.Printf("Found %s %d times in %s\n", keyword, count, pdfPath)
 
-			completedKeywordInfo := KeywordInfo{keyword, count}
-			completedResume := Resume{pdfPath, completedKeywordInfo}
-			output = append(output, completedResume)
+			finalCounts = append(finalCounts, count)
+
 		}
+
+		var sum int = 0
+		for _, num := range finalCounts {
+			sum += num
+		}
+
+		finalCounts = append(finalCounts, sum)
+
+		completedResume := Resume{pdfPath, finalCounts}
+		output = append(output, completedResume)
 	}
 
 	return output
 }
 
 func generateCSV(resumeData []Resume, keywords []string) {
-	initialRow := [][]string{{"Filename", "test", "test"}, {"test", "test", "test"}}
-
-	for _, keyword := range keywords {
-		initialRow[0] = append(initialRow[0], keyword)
+	resumeCSVStructure := [][]string{
+		{"Filename"},
 	}
-
-	initialRow[0] = append(initialRow[0], "Hi my name is Hunter")
-
-	fmt.Printf("%v\n", initialRow[0])
-
-}
-
-//empData := [][]string{{"Name", "City", "Skills"}, {"Smith", "Newyork", "Java"}, {"William", "Paris", "Golang"}, {"Rose", "London", "PHP"}}
-
-func generateCSV1(resumeData []Resume, keywords []string) {
-	initialRow := []string{"Filename", "test", "test"}
 
 	// Add each keyword to the initial row
-	for _, keyword := range keywords {
-		initialRow = append(initialRow, keyword)
+
+	resumeCSVStructure[0] = append(resumeCSVStructure[0], keywords...)
+	resumeCSVStructure[0] = append(resumeCSVStructure[0], "Total")
+
+	for _, resume := range resumeData {
+		resumeRow := []string{resume.filename}
+		for _, count := range resume.count {
+			resumeRow = append(resumeRow, fmt.Sprintf("%d", count))
+		}
+		resumeCSVStructure = append(resumeCSVStructure, resumeRow)
 	}
 
-	// Append the string to the initial row
-	initialRow = append(initialRow, "My new stuff")
+	csvFile, err := os.Create("C:\\Users\\hunte\\Documents\\test.csv")
 
-	// Return the initial row as a two-dimensional array
-	fmt.Printf("%v\n", initialRow)
+	if err != nil {
+		log.Fatalf("failed creating file: %s", err)
+	}
+
+	csvwriter := csv.NewWriter(csvFile)
+
+	for _, row := range resumeCSVStructure {
+		_ = csvwriter.Write(row)
+	}
+	csvwriter.Flush()
+	csvFile.Close()
+}
+
+func wordlistSeperate(wordlistPath string) []string {
+	// Read the contents of the file into a byte slice.
+	b, err := ioutil.ReadFile(wordlistPath)
+	if err != nil {
+		panic(err)
+	}
+
+	// Convert the byte slice to a string.
+	s := string(b)
+
+	// Split the string into a slice of lines.
+	lines := strings.Split(s, "\n")
+
+	return lines
 }
