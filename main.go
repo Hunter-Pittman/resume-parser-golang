@@ -11,7 +11,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ledongthuc/pdf"
 )
@@ -25,18 +27,38 @@ func main() {
 	pdf.DebugOn = true
 	var pdfPath string
 	var keywordList string
+	var outputCSV string
 
 	flag.StringVar(&pdfPath, "p", "pdf", "Specify directory to pdf files")
 	flag.StringVar(&keywordList, "k", "keywords", "Specify file with keywords")
+	flag.StringVar(&outputCSV, "o", "output", "Specify file path to the csv output")
 	flag.Parse()
 
 	//Test value only
-	pdfPath = "C:\\Users\\hunte\\Documents\\pdf_test_dir2\\"
-	keywords := wordlistSeperate("C:\\Users\\hunte\\Documents\\TIER 1 CaCTI Keywords.txt")
+	//pdfPath = "C:\\Users\\hunte\\Documents\\pdf_test_dir2\\"
+	//keywords := wordlistSeperate("C:\\Users\\hunte\\Documents\\TIER 1 CaCTI Keywords.txt")
+
+	_, err := os.Stat(pdfPath)
+	if err == nil {
+
+	}
+	if os.IsNotExist(err) {
+		panic("Path to PDF's does not exist!")
+	}
+
+	_, err = os.Stat(keywordList)
+	if err == nil {
+
+	}
+	if os.IsNotExist(err) {
+		panic("Path to keyword list does not exist!")
+	}
+
+	keywords := wordlistSeperate(keywordList)
 
 	analyzedResumes := searchPdf(pdfPath, keywords)
 
-	generateCSV(analyzedResumes, keywords)
+	generateCSV(analyzedResumes, keywords, outputCSV)
 
 }
 
@@ -97,7 +119,13 @@ func searchPdf(pdfPath string, keywords []string) []Resume {
 	} else {
 		content, err := readPdf(pdfPath) // Read local pdf file
 		if err != nil {
-			fmt.Printf("Error: %v, File Path: %v\n", err, pdfPath)
+			permissionError := "malformed PDF: reading at offset 0: stream not present"
+			if err.Error() == permissionError {
+				fmt.Printf("Try chaging the page extraction permission on the PDF, File Path: %v\n", err, pdfPath)
+			} else {
+				fmt.Printf("Error: %v, File Path: %v\n", err, pdfPath)
+			}
+
 		}
 
 		finalCounts := make([]int, 0)
@@ -122,7 +150,7 @@ func searchPdf(pdfPath string, keywords []string) []Resume {
 	return output
 }
 
-func generateCSV(resumeData []Resume, keywords []string) {
+func generateCSV(resumeData []Resume, keywords []string, outputCSV string) {
 	resumeCSVStructure := [][]string{
 		{"Filename"},
 	}
@@ -140,7 +168,7 @@ func generateCSV(resumeData []Resume, keywords []string) {
 		resumeCSVStructure = append(resumeCSVStructure, resumeRow)
 	}
 
-	csvFile, err := os.Create("C:\\Users\\hunte\\Documents\\test.csv")
+	csvFile, err := os.Create(outputCSV + "parsedresumes_" + strconv.FormatInt(time.Now().UTC().UnixNano(), 10) + ".csv")
 
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
@@ -169,4 +197,5 @@ func wordlistSeperate(wordlistPath string) []string {
 	lines := strings.Split(s, "\n")
 
 	return lines
+
 }
