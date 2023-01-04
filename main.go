@@ -36,7 +36,7 @@ func main() {
 
 	//Test value only
 	//pdfPath = "C:\\Users\\hunte\\Documents\\pdf_test_dir2\\"
-	//keywords := wordlistSeperate("C:\\Users\\hunte\\Documents\\TIER 1 CaCTI Keywords.txt")
+	//keywords := wordlistSeperate("C:\\Users\\hunte\\Documents\\list.txt")
 
 	_, err := os.Stat(pdfPath)
 	if err == nil {
