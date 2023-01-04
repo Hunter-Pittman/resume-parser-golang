@@ -3,4 +3,4 @@ This project is the precursor to the resume-parser-python project. This project 
 
 Usage:
 
-> resume_parser.exe -p <path to PDF directory> -k <path to keywords file> -o <path to output directory>
+> resume_parser.exe -p path to PDF directory -k path to keywords file -o path to output directory
